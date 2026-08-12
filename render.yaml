@@ -22,7 +22,7 @@ services:
     env: node
     rootDir: express
     buildCommand: "npm install && npm run build"
-    startCommand: "node dist/server.cjs"
+    startCommand: "node dist/server.js"
     envVars:
       - key: PORT
         value: 3000
