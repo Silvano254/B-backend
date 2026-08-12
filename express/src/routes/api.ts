@@ -11,6 +11,7 @@ import {
   fetchLiveBinanceTickers,
   fetchKlinesForSymbol,
   executeBinanceOrder,
+  verifyBinanceApiKeys,
 } from '../services/binanceService.js';
 
 const router = Router();
