@@ -62,7 +62,7 @@ router.post('/auth/login', async (req: Request, res: Response) => {
     const user = await UserAuthModel.findOne({ username });
     if (user) {
       if (user.password !== password) {
-        res.status(400).json({ error: 'Invalid password' });
+        res.status(401).json({ error: 'Invalid password. Please check your credentials.' });
         return;
       }
       res.json({
@@ -71,16 +71,15 @@ router.post('/auth/login', async (req: Request, res: Response) => {
         user: { username: user.username, id: user._id },
       });
       return;
+    } else {
+      res.status(401).json({ error: 'User account not found. Please click Register to create an account.' });
+      return;
     }
   } catch (e) {
-    // Fallback if MongoDB is not connected
+    // If DB check fails
+    res.status(500).json({ error: 'Database authentication service unavailable.' });
+    return;
   }
-
-  res.json({
-    success: true,
-    message: 'Authentication successful',
-    user: { username, id: Date.now() },
-  });
 });
 
 // Health check
