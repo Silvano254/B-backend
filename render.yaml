@@ -1,0 +1,35 @@
+services:
+  # 1. Django REST Backend Service
+  - type: web
+    name: binance-django-backend
+    env: python
+    rootDir: django
+    buildCommand: "pip install -r requirements.txt && python manage.py migrate"
+    startCommand: "gunicorn config.wsgi:application"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_HOSTS
+        value: "*"
+
+  # 2. Express Node API Proxy & Realtime Service
+  - type: web
+    name: binance-express-backend
+    env: node
+    rootDir: express
+    buildCommand: "npm install && npm run build"
+    startCommand: "node dist/server.cjs"
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: DJANGO_BASE_URL
+        fromService:
+          type: web
+          name: binance-django-backend
+          property: host
+      - key: ALLOWED_ORIGINS
+        value: "*"
