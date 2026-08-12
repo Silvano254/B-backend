@@ -39,6 +39,24 @@ app.use(
   })
 );
 
+// HTTP Request Logging Middleware for Render Logs
+app.use((req, res, next) => {
+  const start = Date.now();
+  const timestamp = new Date().toISOString();
+  const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    const statusCode = res.statusCode;
+    const color = statusCode >= 500 ? '\x1b[31m' : statusCode >= 400 ? '\x1b[33m' : '\x1b[32m';
+    console.log(
+      `[HTTP LOG] ${timestamp} | IP: ${clientIp} | ${req.method} ${req.originalUrl} | Status: ${color}${statusCode}\x1b[0m | Duration: ${duration}ms`
+    );
+  });
+
+  next();
+});
+
 // JSON Body Parser
 app.use(express.json());
 
