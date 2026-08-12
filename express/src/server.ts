@@ -72,6 +72,8 @@ app.get('/', (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`[Binance Signal Pro Backend] Express server running on port ${PORT}`);
+const portNum = typeof PORT === 'string' ? parseInt(PORT, 10) : PORT;
+
+app.listen(portNum, '0.0.0.0', () => {
+  console.log(`[Binance Signal Pro Backend] Express server bound to 0.0.0.0:${portNum}`);
 });
