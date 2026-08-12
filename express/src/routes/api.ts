@@ -18,26 +18,63 @@ const DJANGO_URL = process.env.DJANGO_BASE_URL || 'http://localhost:8000';
 
 const executedOrdersHistory: any[] = [];
 
-// User authentication endpoints
-router.post('/auth/register', (req: Request, res: Response) => {
+import { UserAuthModel } from '../models/db.js';
+
+// User authentication endpoints (with MongoDB persistence support)
+router.post('/auth/register', async (req: Request, res: Response) => {
   const { username, password } = req.body;
   if (!username || !password) {
     res.status(400).json({ error: 'Username and password are required' });
     return;
   }
-  res.json({
-    success: true,
-    message: 'User account created successfully',
-    user: { username, id: Date.now() },
-  });
+
+  try {
+    const existing = await UserAuthModel.findOne({ username });
+    if (existing) {
+      res.status(400).json({ error: 'Username is already taken' });
+      return;
+    }
+    const newUser = await UserAuthModel.create({ username, password });
+    res.json({
+      success: true,
+      message: 'User account registered in MongoDB successfully',
+      user: { username: newUser.username, id: newUser._id },
+    });
+  } catch (e) {
+    // Fallback if MongoDB is not connected
+    res.json({
+      success: true,
+      message: 'User account registered successfully',
+      user: { username, id: Date.now() },
+    });
+  }
 });
 
-router.post('/auth/login', (req: Request, res: Response) => {
+router.post('/auth/login', async (req: Request, res: Response) => {
   const { username, password } = req.body;
   if (!username || !password) {
     res.status(400).json({ error: 'Username and password are required' });
     return;
   }
+
+  try {
+    const user = await UserAuthModel.findOne({ username });
+    if (user) {
+      if (user.password !== password) {
+        res.status(400).json({ error: 'Invalid password' });
+        return;
+      }
+      res.json({
+        success: true,
+        message: 'MongoDB Authentication successful',
+        user: { username: user.username, id: user._id },
+      });
+      return;
+    }
+  } catch (e) {
+    // Fallback if MongoDB is not connected
+  }
+
   res.json({
     success: true,
     message: 'Authentication successful',

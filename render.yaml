@@ -3,7 +3,7 @@ services:
   - type: web
     name: binance-django-backend
     env: python
-    rootDir: B-backend/django
+    rootDir: django
     buildCommand: "pip install -r requirements.txt && python manage.py migrate"
     startCommand: "gunicorn config.wsgi:application"
     envVars:
@@ -20,7 +20,7 @@ services:
   - type: web
     name: binance-express-backend
     env: node
-    rootDir: B-backend/express
+    rootDir: express
     buildCommand: "npm install && npm run build"
     startCommand: "node dist/server.cjs"
     envVars:
