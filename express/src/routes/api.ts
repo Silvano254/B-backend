@@ -108,14 +108,36 @@ router.get('/account', async (req: Request, res: Response) => {
   res.json(getAccountState());
 });
 
-// Save & test Binance API Keys (Syncs with Django REST database)
+// Save & test Binance API Keys (Verifies against Binance REST API)
 router.post('/account/apikeys', async (req: Request, res: Response) => {
   const { apiKey, secretKey, permissions } = req.body;
   if (!apiKey || !secretKey) {
     res.status(400).json({ error: 'API Key and Secret Key are required' });
     return;
   }
+
+  // 1. Live Verification Ping against Binance REST API
+  const verification = await verifyBinanceApiKeys(apiKey, secretKey);
+  if (!verification.valid) {
+    res.status(400).json({
+      error: `Binance API Key validation failed: ${verification.error}`,
+    });
+    return;
+  }
+
+  // 2. Calculate actual USDT balance if verified
+  let usdtBalance = 0;
+  if (verification.balances) {
+    const usdtAsset = verification.balances.find((b: any) => b.asset === 'USDT');
+    if (usdtAsset) {
+      usdtBalance = parseFloat(usdtAsset.free) + parseFloat(usdtAsset.locked);
+    }
+  }
+
   const updated = updateApiKeys(apiKey, secretKey, permissions || 'READONLY');
+  if (usdtBalance > 0) {
+    updated.usdtBalance = Number(usdtBalance.toFixed(2));
+  }
 
   try {
     const djangoRes = await fetch(`${DJANGO_URL}/api/account/apikeys`, {
@@ -134,7 +156,7 @@ router.post('/account/apikeys', async (req: Request, res: Response) => {
 
   res.json({
     success: true,
-    message: `Binance API key successfully linked (${permissions === 'AUTOTRADE' ? 'Auto-Trade Execution' : 'Read-Only'})`,
+    message: `✅ Binance API key verified & connected successfully! (${permissions === 'AUTOTRADE' ? 'Auto-Trade' : 'Read-Only'})`,
     account: updated,
   });
 });

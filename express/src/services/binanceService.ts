@@ -36,6 +36,30 @@ export function createBinanceSignature(queryString: string, secretKey: string): 
   return crypto.createHmac('sha256', secretKey).update(queryString).digest('hex');
 }
 
+export async function verifyBinanceApiKeys(apiKey: string, secretKey: string): Promise<{ valid: boolean; balances?: any[]; error?: string }> {
+  try {
+    const timestamp = Date.now();
+    const queryString = `timestamp=${timestamp}`;
+    const signature = createBinanceSignature(queryString, secretKey);
+
+    const res = await fetch(`${BINANCE_BASE_URL}/api/v3/account?${queryString}&signature=${signature}`, {
+      method: 'GET',
+      headers: {
+        'X-MBX-APIKEY': apiKey,
+      },
+      signal: AbortSignal.timeout(6000),
+    });
+
+    const data = await res.json();
+    if (res.ok && data.balances) {
+      return { valid: true, balances: data.balances };
+    }
+    return { valid: false, error: data.msg || 'Invalid API key or secret permissions' };
+  } catch (e: any) {
+    return { valid: false, error: e.message || 'Failed to ping Binance API' };
+  }
+}
+
 export function updateApiKeys(apiKey: string, secretKey: string, permissions: 'READONLY' | 'AUTOTRADE'): AccountState {
   userApiKey = apiKey;
   userSecretKey = secretKey;
